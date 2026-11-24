@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -73,6 +74,8 @@ fun TimesheetScreen(vm: AppViewModel) {
     val month = claim.month
     var showRange by remember { mutableStateOf(false) }
     var confirmClear by remember { mutableStateOf(false) }
+    var authSigning by remember { mutableStateOf(false) }
+    val authSig = claim.authSignatures[month]
     val monthDays = claim.daysIn(month)
 
     Column(
@@ -154,6 +157,28 @@ fun TimesheetScreen(vm: AppViewModel) {
             label = { Text("Remarks") }, minLines = 2, modifier = Modifier.fillMaxWidth(),
         )
 
+        Card {
+            Column(Modifier.padding(12.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Authoriser's signature", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                val authName = vm.activeProfile?.authoriserName.orEmpty()
+                if (authSig != null && java.io.File(authSig.path).exists()) {
+                    coil.compose.AsyncImage(
+                        model = java.io.File(authSig.path), contentDescription = "Authoriser's signature",
+                        modifier = Modifier.fillMaxWidth().height(80.dp).background(Color.White, RoundedCornerShape(8.dp)),
+                    )
+                    Text("Signed ${authSig.date.format(Fmt.day)}${if (authName.isNotBlank()) " by $authName" else ""} " +
+                        "for ${month.format(Fmt.monthTitle)}", style = MaterialTheme.typography.bodySmall)
+                } else {
+                    Text("Hand the phone to ${authName.ifBlank { "the authoriser" }} to sign ${month.format(Fmt.monthTitle)}'s timesheet. " +
+                        "It goes in the Authorised Signature box with today's date.", style = MaterialTheme.typography.bodySmall)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { authSigning = true }) { Text(if (authSig == null) "Authoriser: sign" else "Sign again") }
+                    if (authSig != null) TextButton(onClick = vm::removeAuthoriserSignature) { Text("Remove") }
+                }
+            }
+        }
+
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { confirmClear = true }, modifier = Modifier.weight(1f)) { Text("Clear month") }
             Button(onClick = vm::saveTimesheet, modifier = Modifier.weight(1f), enabled = !vm.busy) {
@@ -170,6 +195,10 @@ fun TimesheetScreen(vm: AppViewModel) {
         )
     }
 
+    if (authSigning) SignatureDialog(
+        onDismiss = { authSigning = false },
+        title = "${vm.activeProfile?.authoriserName?.ifBlank { null } ?: "Authoriser"} — sign below",
+    ) { bmp -> vm.saveAuthoriserSignature(bmp); authSigning = false }
     if (showRange) RangeDialog(onDismiss = { showRange = false }) { s, e -> vm.applyRange(s, e); showRange = false }
     if (confirmClear) AlertDialog(
         onDismissRequest = { confirmClear = false },

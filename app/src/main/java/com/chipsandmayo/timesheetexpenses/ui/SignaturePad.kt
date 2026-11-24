@@ -35,13 +35,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 @Composable
-fun SignatureDialog(onDismiss: () -> Unit, onSave: (Bitmap) -> Unit) {
+fun SignatureDialog(onDismiss: () -> Unit, title: String = "Sign below", onSave: (Bitmap) -> Unit) {
     val strokes = remember { mutableStateListOf<List<Offset>>() }
     val current = remember { mutableStateListOf<Offset>() }
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxWidth(0.95f), shape = RoundedCornerShape(16.dp)) {
             Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Sign below", style = MaterialTheme.typography.titleLarge)
+                Text(title, style = MaterialTheme.typography.titleLarge)
                 Text("Tip: turn your phone sideways for more room.", style = MaterialTheme.typography.bodySmall)
                 Canvas(
                     Modifier.fillMaxWidth().height(200.dp)

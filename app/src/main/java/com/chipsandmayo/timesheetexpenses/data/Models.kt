@@ -72,6 +72,9 @@ data class Expense(
         if (category == ExpenseCategory.MILEAGE) mileageGbp(perMile) else amount * rateToGbp
 }
 
+/** Authoriser's signature captured on the phone for one month's timesheet. */
+data class AuthSignature(val path: String, val date: LocalDate)
+
 data class Claim(
     val month: YearMonth = YearMonth.now(),
     val days: Map<LocalDate, DayType> = emptyMap(),
@@ -80,6 +83,7 @@ data class Claim(
     val period: String = "",
     val expenses: List<Expense> = emptyList(),
     val nextPhotoNo: Int = 1,
+    val authSignatures: Map<YearMonth, AuthSignature> = emptyMap(),
 ) {
     fun daysIn(month: YearMonth) = days.filterKeys { YearMonth.from(it) == month }
 }

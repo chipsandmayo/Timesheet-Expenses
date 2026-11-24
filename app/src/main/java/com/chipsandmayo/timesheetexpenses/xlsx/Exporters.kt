@@ -29,6 +29,8 @@ object TimesheetExporter {
         month: YearMonth,
         today: LocalDate,
         signature: SignatureImage?,
+        authoriserSignature: SignatureImage? = null,
+        authorisedDate: LocalDate? = null,
     ): ByteArray {
         val x = XlsxEditor(template)
         x.setString(SHEET, "E8", profile.client)
@@ -63,13 +65,17 @@ object TimesheetExporter {
         x.setFormula(SHEET, "AH21", "SUM(C21:AG21)", 0.0)
         x.setFormula(SHEET, "AH22", "SUM(AH17:AH21)", total)
 
-        if (signature != null && signature.width > 0 && signature.height > 0) {
-            // Box Z8:AH9 is roughly 2.0" x 0.47"; keep aspect ratio inside it.
+        // Signature boxes Z8:AH9 (consultant) and Z11:AH12 (authoriser), roughly 2.0" x 0.47"
+        fun place(sig: SignatureImage?, row: Int, name: String) {
+            if (sig == null || sig.width <= 0 || sig.height <= 0) return
             val maxW = 1_800_000.0; val maxH = 400_000.0
-            val scale = minOf(maxW / signature.width, maxH / signature.height)
-            val cx = (signature.width * scale).toLong(); val cy = (signature.height * scale).toLong()
-            x.addPicture(DRAWING, signature.png, col = 25, row = 7, colOff = 38_100, rowOff = 19_050, cx = cx, cy = cy, name = "Signature")
+            val scale = minOf(maxW / sig.width, maxH / sig.height)
+            val cx = (sig.width * scale).toLong(); val cy = (sig.height * scale).toLong()
+            x.addPicture(DRAWING, sig.png, col = 25, row = row, colOff = 38_100, rowOff = 19_050, cx = cx, cy = cy, name = name)
         }
+        place(signature, 7, "Signature")
+        place(authoriserSignature, 10, "AuthSignature")
+        if (authoriserSignature != null) x.setString(SHEET, "Z13", (authorisedDate ?: today).format(Fmt.day))
         x.forceRecalc()
         return x.toByteArray()
     }

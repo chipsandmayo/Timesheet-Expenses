@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.FileProvider
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.chipsandmayo.timesheetexpenses.data.AuthSignature
 import com.chipsandmayo.timesheetexpenses.data.Claim
 import com.chipsandmayo.timesheetexpenses.data.DayType
 import com.chipsandmayo.timesheetexpenses.data.Expense
@@ -121,6 +122,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         updateClaim(claim.copy(days = days))
     }
 
+    fun saveAuthoriserSignature(bmp: Bitmap) {
+        val path = saveSignature("authoriser-${claim.month}", bmp)
+        claim.authSignatures[claim.month]?.let { File(it.path).delete() }
+        updateClaim(claim.copy(authSignatures = claim.authSignatures + (claim.month to AuthSignature(path, LocalDate.now()))))
+    }
+
+    fun removeAuthoriserSignature() {
+        claim.authSignatures[claim.month]?.let { File(it.path).delete() }
+        updateClaim(claim.copy(authSignatures = claim.authSignatures - claim.month))
+    }
+
     fun clearMonth() = updateClaim(claim.copy(days = claim.days.filterKeys { YearMonth.from(it) != claim.month }))
     fun setRemarks(t: String) = updateClaim(claim.copy(remarks = t))
     fun setLocation(t: String) = updateClaim(claim.copy(locationCode = t))
@@ -150,7 +162,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val sig = p.signaturePath.takeIf { it.isNotBlank() }?.let { File(it) }?.takeIf { it.exists() }?.let {
             val (w, h) = Images.pngSize(it); SignatureImage(it.readBytes(), w, h)
         }
-        val bytes = TimesheetExporter.build(tpl, p, claim, claim.month, LocalDate.now(), sig)
+        val auth = claim.authSignatures[claim.month]?.takeIf { File(it.path).exists() }
+        val authSig = auth?.let { val f = File(it.path); val (w, h) = Images.pngSize(f); SignatureImage(f.readBytes(), w, h) }
+        val bytes = TimesheetExporter.build(tpl, p, claim, claim.month, LocalDate.now(), sig, authSig, auth?.date)
         val name = Naming.timesheet(p, claim.month)
         DocumentSaver.save(ctx, Naming.folder(claim.month), name, XLSX, bytes)
         return File(exportDir(), name).apply { writeBytes(bytes) }

@@ -50,6 +50,16 @@ class ExportTest {
         assertTrue(xml.contains("Nov-2026"))
     }
 
+    @Test fun authoriserSignatureAndDate() {
+        val m = YearMonth.of(2026, 11)
+        // 1x1 transparent PNG
+        val png = java.util.Base64.getDecoder().decode("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==")
+        val sig = com.chipsandmayo.timesheetexpenses.xlsx.SignatureImage(png, 300, 100)
+        val bytes = TimesheetExporter.build(File("src/main/assets/timesheet_template.xlsx").readBytes(), profile,
+            Claim(month = m), m, LocalDate.of(2026, 11, 24), sig, sig, LocalDate.of(2026, 11, 20))
+        assertTrue(sheetXml(bytes).contains("20/11/2026"))
+    }
+
     @Test fun expensesTotal() {
         val e = listOf(
             Expense(category = ExpenseCategory.MEALS, amount = 10.0, currency = "EUR", rateToGbp = 0.85),

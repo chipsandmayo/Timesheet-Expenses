@@ -67,6 +67,9 @@ class Store(private val context: Context) {
         put("days", JSONObject().apply { c.days.forEach { (d, t) -> put(d.toString(), t.name) } })
         put("remarks", c.remarks); put("locationCode", c.locationCode); put("period", c.period)
         put("nextPhotoNo", c.nextPhotoNo)
+        put("authSignatures", JSONObject().apply {
+            c.authSignatures.forEach { (m, a) -> put(m.toString(), JSONObject().put("path", a.path).put("date", a.date.toString())) }
+        })
         put("expenses", JSONArray().apply {
             c.expenses.forEach { e ->
                 put(JSONObject().apply {
@@ -106,10 +109,20 @@ class Store(private val context: Context) {
                 )
             }
         }
+        val auth = mutableMapOf<YearMonth, AuthSignature>()
+        o.optJSONObject("authSignatures")?.let { a ->
+            a.keys().forEach { k ->
+                runCatching {
+                    val v = a.getJSONObject(k)
+                    auth[YearMonth.parse(k)] = AuthSignature(v.getString("path"), LocalDate.parse(v.getString("date")))
+                }
+            }
+        }
         return Claim(
             month = runCatching { YearMonth.parse(o.getString("month")) }.getOrDefault(YearMonth.now()),
             days = days, remarks = o.optString("remarks"), locationCode = o.optString("locationCode"),
             period = o.optString("period"), expenses = exps, nextPhotoNo = o.optInt("nextPhotoNo", 1),
+            authSignatures = auth,
         )
     }
 }
