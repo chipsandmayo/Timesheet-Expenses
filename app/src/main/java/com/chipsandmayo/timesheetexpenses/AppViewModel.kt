@@ -40,8 +40,10 @@ import java.time.YearMonth
 
 enum class ReceiptStep { NONE, READING, PICK_AMOUNT, ASK_GBP, PICK_CURRENCY, FETCHING_RATE, EDIT }
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class AppViewModel(app: Application) : AndroidViewModel(app) {
     private val store = Store(app)
+    private val saveQueue = Dispatchers.IO.limitedParallelism(1)
     private val ctx get() = getApplication<Application>()
 
     var profiles by mutableStateOf(store.loadProfiles()); private set
@@ -92,7 +94,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun updateClaim(c: Claim) {
         claim = c
-        viewModelScope.launch(Dispatchers.IO) { store.saveClaim(c) }
+        viewModelScope.launch(saveQueue) { store.saveClaim(c) }
     }
 
     fun setMonth(m: YearMonth) = updateClaim(claim.copy(month = m))
